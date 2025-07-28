@@ -56,7 +56,7 @@
 	45 : 	End If
 	60 : End Walk
 	
-	; 65 : Do If: ($$NumItems:SEND_SalesInvoice_Tally > 0 and Not $$IsEmpty:##vStatus) :  Start Timer: SEND_SalesInvoice_Timer : 1
+	65 : Do If: ($$NumItems:SEND_SalesInvoice_Tally > 0 and Not $$IsEmpty:##vStatus) :  Start Timer: SEND_SalesInvoice_Timer : 1
 
 ;[#Menu: Gateway of Tally]
 ;	
@@ -519,8 +519,8 @@
 	Type		: Vouchers : VoucherType
 	Child Of	: $$VchTypeSales
 	Belongs To	: Yes
-	;Filter 	: WebStatus
-	Fetch: VoucherTypeName, PartyLedgerNAme ,Date, Narration, Amount, WebStatus_DocName
+	Filter 	: WebStatus
+	Fetch: VoucherTypeName, PartyLedgerNAme ,Date, Narration, Amount, WebStatus_DocName, WebStatus
 	Fetch: LedgerEntries.LedgerName, LedgerEntries.Amount
 	Fetch: InventoryEntries.StockItemName, InventoryEntries.BilledQty, InventoryEntries.Rate, InventoryEntries.Amount
 	Fetch: Salesman, arrangeby, OrderNotedby, ElectricianNameonBill
@@ -538,6 +538,7 @@
 		NonCancelled 	: NOT $IsCancelled
 		NonOptional		: NOT $IsOptional 
 		NonZeroEntries 	: NOT $$IsEmpty:$Amount
+		WebStatus		: NOT $WebStatus = @@MGNResetFlag
 		
 		charge_type : If $().HasDiscOrCartage > 0 and $TaxType:Ledger:$LedgerName Not In ("VAT") +
 						then "Actual"+
