@@ -18,6 +18,8 @@
 			Indent : Blank
 			Key Item : Reset All Voucher : A : Call : ResetVoucher
 			Indent : Blank
+			Key Item : Reset Sales Invoices : S : Call : ResetSalesInvoices
+			Indent : Blank
 			Key Item : Reset Company : C :  Call : ResetCompany;;
 			Indent : Blank
 			Key Item : Reset Groups : G :  Call : ResetGroup ;;
@@ -140,6 +142,44 @@
 		54 : End IF 
 
 
+[Function : ResetSalesInvoices]
+
+	Variable : NumItems : Number
+	Variable : PCounter : Number : 1
+	Variable : Hoshiyari : String
+
+	Variable: TempFromDate  : Date : ##SVFromDate
+	Variable: TempToDate	: Date : ##SVToDate
+	Variable: TempCurrentDate : Date : ##SVCurrentDate
+
+	Local Formula   : LastVchDate    :  $LastVoucherDate:Company:##SVCurrentCompany
+
+	00 : Query Box: "Reset Sales Invoices ?" : Yes: No
+	01 : If: $$LastResult
+	02 : 	Start Progress : 1 : "Resetting Sales Invoices" : "Sales Invoices" 
+	04 : 		FOR RANGE  : IteratorDate  : Date  : @@SyncStartFrom    : @LastVchDate   : 1 : "Day"
+	05 : 			SET : SVFromDate    : ##IteratorDate
+	06 : 			SET : SVToDate      : ##IteratorDate
+	08 : 			Set : Numitems : $$Numitems:ResetSalesInvoices
+	09 : 			if : ##Numitems  > 0
+	10 :				Start Batch Post
+	16 : 					Walk Collection: ResetSalesInvoices
+	17 :						Log: $VoucherTypename + " - "+ $VoucherNumber + " - " +$$String:$Date
+	18 : 						Set : vMasterID : "ID:"+$$String:$MasterID
+	19 : 						Modify Object : (Voucher,##vMasterID).WebStatus[1].WebStatus : "Reset"
+	20 : 					End Walk
+	22: 				End Batch Post
+	31 :			End If
+	32 : 		Show Progress :##PCounter
+	35 : 		End For
+	40 : 	End Progress
+	50 : End If
+
+	51 : Set: SVFromDate : ##TempFromDate
+	52 : Set: SVToDate : ##TempToDate
+	53 : Set: SVCurrentDate : ##TempCurrentDate
+
+
 
 	[Collection : ResetVoucher]
 		
@@ -152,6 +192,18 @@
 		Filter: VNRIsCancelled
 		Filter: VNRIsOptional
 	
+
+	[Collection : ResetSalesInvoices]
+		
+		Parm Var: SVFromDate : Date: ##SVFromDate
+		Parm Var: SVToDate	 : Date: ##SVToDate
+
+		Type : Vouchers : VoucherType
+		Child Of: $$VchTypeSales
+		Fetch : PartyLedgerName,BasicBuyerName,PartyName,GUID,ReferenceDate, BrokerName
+		Filter: VNRIsCancelled
+		Filter: VNRIsOptional
+
 
 /*Reset Ledger*/
 
