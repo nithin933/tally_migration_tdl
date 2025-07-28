@@ -519,7 +519,7 @@
 	Type		: Vouchers : VoucherType
 	Child Of	: $$VchTypeSales
 	Belongs To	: Yes
-	Filter 		: WebStatus
+	;Filter 	: WebStatus
 	Fetch: VoucherTypeName, PartyLedgerNAme ,Date, Narration, Amount, WebStatus_DocName
 	Fetch: LedgerEntries.LedgerName, LedgerEntries.Amount
 	Fetch: InventoryEntries.StockItemName, InventoryEntries.BilledQty, InventoryEntries.Rate, InventoryEntries.Amount
