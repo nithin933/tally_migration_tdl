@@ -538,7 +538,7 @@
 		NonCancelled 	: NOT $IsCancelled
 		NonOptional		: NOT $IsOptional 
 		NonZeroEntries 	: NOT $$IsEmpty:$Amount
-		WebStatus		: NOT $WebStatus = @@MGNResetFlag
+		WebStatus		: $$IsEmpty:$WebStatus or $WebStatus != @@MGNResetFlag
 		
 		charge_type : If $().HasDiscOrCartage > 0 and $TaxType:Ledger:$LedgerName Not In ("VAT") +
 						then "Actual"+
