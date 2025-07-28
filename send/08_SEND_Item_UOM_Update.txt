@@ -1,0 +1,104 @@
+;; Item UOM Update TDL
+;; Updates only the UOM of existing items
+
+[Collection: SEND_Item_UOM_Update]
+		
+	Export Header	: "Accept: application/json"
+	Export Header	: "Accept-Charset: utf-8"
+	Export Header	: "Authorization: " + "token " + @@AuthToken
+
+	Data Source: HTTP JSON: @@MGNHost + '/api/method/express_tally.receive_tally_uae.item_uom_update'
+
+	RemoteRequest: SEND_Item_UOM_Update : UTF8
+	JSON Object Path: "message:1"
+	
+[Function: SEND_Item_UOM_Update_Start]
+	
+	10 : Start Timer: SEND_Item_UOM_Update_Timer : 1
+
+[System: Events]
+	
+	SEND_Item_UOM_Update_Timer : Timer: True: Call: SEND_Item_UOM_Update
+
+[Function: SEND_Item_UOM_Update]
+
+	Variable : vName  : String
+	Variable: vMessage : String
+	Variable: vCounter_send : Number : 1
+	Variable: vStatus : String
+
+	06 : Do If: ($$NumItems:SEND_Item_UOM_Update_Tally = 0) :  Stop Timer: SEND_Item_UOM_Update_Timer
+	07 : Do If: ($$NumItems:SEND_Item_UOM_Update_Tally = 0) :  Return
+
+	08 : Stop Timer: SEND_Item_UOM_Update_Timer
+	09 : Start Progress: 1 : "Updating Item UOMs" : ""
+
+	10 : Walk Collection: SEND_Item_UOM_Update
+
+	12 : Set: vStatus : $Status
+	21 :	Start Batch Post
+	25 : 		Walk Collection: data
+	26 : 		Log: $name
+	28 : 		Set: vName : $name
+	29 : 		Set: vMessage : $message
+	30 : 			Modify Object: (StockItem, ##vName).WebStatus[1].WebStatus : @@MGNResetFlag
+	32 :			Modify Object: (StockItem, ##vName).WebStatus_Message[1].WebStatus_Message : ##vMessage
+	40 :		End Walk
+	42 :	End Batch Post
+	60 : End Walk
+
+	65 : Do If: ($$NumItems:SEND_Item_UOM_Update_Tally > 0 and Not $$IsEmpty:##vStatus) :  Start Timer: SEND_Item_UOM_Update_Timer : 1
+
+[Report : SEND_Item_UOM_Update]
+	
+	Form: SEND_Item_UOM_Update
+	
+	[Form: SEND_Item_UOM_Update]
+		
+		Part: SEND_Item_UOM_Update
+		Delete: XMLTag
+
+	[Part: SEND_Item_UOM_Update]
+		
+		Line: SEND_Item_UOM_Update
+		Repeat: SEND_Item_UOM_Update : SEND_Item_UOM_Update_Tally
+		Scroll: Vertical
+		
+		[Line: SEND_Item_UOM_Update]
+			
+			Field: SEND_uom_item_code, SEND_uom_item_name, SEND_uom_stock_uom
+			
+			JSONTag: "data"
+			Empty: $$Line > @@UOMBatchLimit
+			
+			[Field: SEND_uom_item_code]
+				
+				Set as: if $$IsEmpty:$Item_Alias and $$IsEmpty:$partno then $MasterId else if $$IsEmpty:$Item_Alias then $partno else $Item_Alias
+				JSONTag: "item_code"
+				
+			[Field: SEND_uom_item_name]
+				
+				Set as: $name
+				JSONTag: "item_name"
+				
+			[Field: SEND_uom_stock_uom]
+				
+				Set as: $BaseUnits
+				JSONTag: "stock_uom"
+
+[Collection: SEND_Item_UOM_Update_Tally]
+	
+	Type		: StockItem
+	Belongs To	: Yes
+	Sort		: @@Default : $depth
+	;;Filter 		: WebStatus  ;; Comment out to update all items
+	;Filter		: Item_UOM_DebugFilter
+	
+	[System: Formula]
+		
+		Item_UOM_DebugFilter: $Name = "test"
+		UOMBatchLimit: 500
+
+[#Form: StockItem]
+
+	Add : Option : LedgerWebStatus

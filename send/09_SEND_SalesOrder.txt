@@ -1,0 +1,305 @@
+;; Sales Order TDL
+;; Sends Sales Orders from Tally to ERPNext
+
+[Collection: SEND_SalesOrder]
+		
+	Export Header	: "Accept: application/json"
+	Export Header	: "Accept-Charset: utf-8"
+	Export Header	: "Authorization: " + "token " + @@AuthToken
+
+	Data Source: HTTP JSON: @@MGNHost + '/api/method/express_tally.receive_tally_uae.sales_order'
+
+	RemoteRequest: SEND_SalesOrder : UTF8
+	JSON Object Path: "message:1"
+	
+[Function: SEND_SalesOrder_Start]
+
+	Variable : vName  : String
+	Variable: vMessage : String
+	Variable: vDocName : String
+
+	10 : Walk Collection: SEND_SalesOrder
+	20 : 	If: $Status
+	21 :	Start Batch Post
+	25 : 		Walk Collection: data
+	26 : 		Log: $name
+	28 : 		Set: vName : "ID:"+$name
+	28a:		Set: vDocName : $docname
+	29 : 		Set: vMessage : $message
+	30 : 			Modify Object: (Voucher, ##vName).WebStatus[1].WebStatus : @@MGNResetFlag
+	32 : 			Modify Object: (Voucher, ##vName).WebStatus_Message[1].WebStatus_Message : ##vMessage
+	33 : 			Modify Object: (Voucher, ##vName).WebStatus_DocName[1].WebStatus_DocName : ##vDocName
+	40 :		End Walk
+	42 :	End Batch Post
+	45 : 	End If
+	60 : End Walk
+
+[Report : SEND_SalesOrder]
+	
+	Form: SEND_SalesOrder
+
+	[Form: SEND_SalesOrder]
+		
+		Part: SEND_SalesOrder
+		Delete: XMLTag
+
+	[Part: SEND_SalesOrder]
+		
+		Line: SEND_SalesOrder
+		Repeat: SEND_SalesOrder : SEND_SalesOrder_Tally
+		Scroll: Vertical
+		JSONTag: "data"
+		
+		[Line: SEND_SalesOrder]
+			
+			Field: SO_doctype, SO_naming_series, SO_customer, SO_company, SO_transaction_date, SO_delivery_date
+			Field: SO_currency, SO_remarks, SO_webstatus_docname, SO_tally_masterid, SO_vouchernumber
+			Field: SO_order_type, SO_selling_price_list
+			Empty: $$Line > 100	
+			Explode: SO_items
+
+			[Field: SO_doctype]
+				
+				Set as: "Sales Order"
+				JSONTag: "doctype"
+
+			[Field: SO_naming_series]
+				
+				Set as: @@MGNNamingSeries
+				JSONTag: "naming_series"
+
+			[Field: SO_customer]
+				
+				Set as:$PartyLedgerName
+				JSONTag: "customer"
+				
+			[Field: SO_company]
+				
+				Set as: @@MGNBranch
+				JSONTag: "company"
+
+			[Field: SO_transaction_date]
+				
+				Set as: $$GetSqlDate:$Date
+				JSONTag: "transaction_date"
+
+			[Field: SO_delivery_date]
+				
+				Set as: $$GetSqlDate:@DueDate
+				JSONTag: "delivery_date"
+				DueDate : if $$IsEmpty:@AllocDate then $Date + 7 else @AllocDate + 7 
+				AllocDate : $LedgerEntries[1,@@IsDebtorCreditor].BillAllocations[1].BillCreditPeriod
+
+			[Field: SO_currency]
+				
+				Set as: "AED"
+				JSONTag: "currency"
+
+			[Field: SO_remarks]
+				
+				Set as: $Narration
+				JSONTag: "remarks"
+
+			[Field: SO_webstatus_docname]
+				
+				Set as: if $$IsEmpty:$WebStatus_DocName then "NA" else $WebStatus_DocName
+				JSONTag: "webstatus_docname"
+				
+			[Field: SO_tally_masterid]
+				
+				Set as: $masterid
+				JSONTag: "tally_masterid"
+
+			[Field: SO_vouchernumber]
+				
+				Set as: $vouchernumber
+				JSONTag: "tally_voucherno"
+
+			[Field: SO_order_type]
+				
+				Set as: "Sales"
+				JSONTag: "order_type"
+
+			[Field: SO_selling_price_list]
+				
+				Set as: if $$IsEmpty:$PriceLevel then "Standard Selling" else $PriceLevel
+				JSONTag: "selling_price_list"
+
+	[Part: SO_items]
+		
+		Line: SO_items 
+		Repeat: SO_items  : InventoryEntries
+		Scroll: Vertical
+				
+		[Line: SO_items]
+			
+			Field: SO_item_code, SO_item_name, SO_description, SO_qty, SO_uom, SO_rate, SO_amount
+			Field: SO_delivery_date_item, SO_warehouse
+			JSONTag: "items"
+			;Remove if: $$IsEmpty:$StockItemName and $$IsEmpty:$Amount
+			
+			[Field: SO_item_code]
+				
+				JSONTag : "item_code"
+				Set as: if $$IsEmpty:$StockItemName then "Project Item" else if $$IsEmpty:$Item_Alias:StockItem:$StockItemName and $$IsEmpty:$partno:StockItem:$StockItemName then $MasterId:StockItem:$StockItemName else if $$IsEmpty:$Item_Alias:StockItem:$StockItemName then $partno:StockItem:$StockItemName else $Item_Alias:StockItem:$StockItemName
+
+			[Field: SO_item_name]
+				
+				Set as: if $$IsEmpty:$StockItemName then "Project Item" else $StockItemName
+				JSONTag: "item_name"
+				
+			[Field: SO_description]
+
+				Set as: if $$IsEmpty:$StockItemName then "Project Item for Services" else $StockItemName
+				JSONTag: "description"
+
+			[Field: SO_qty]
+
+				Type: Number
+				Set as: if $$IsEmpty:$StockItemName then 1 else if $IsSimpleUnit:Unit:$BaseUnits:StockItem:$StockItemName then $BilledQty else $$Number:@TailUnits / $Conversion:Unit:$BaseUnits:StockItem:$StockItemName
+				JSONTag: "qty"
+				TailUnits: $$String:$BilledQty:"TailUnits,NoSymbol"
+
+			[Field: SO_uom]
+
+				Set as: if $$IsEmpty:$StockItemName then "Nos" else $BaseUnits:StockItem:$StockItemName
+				JSONTag: "uom"
+
+			[Field: SO_rate]
+
+				Type: Number
+				Set as: if $$IsEmpty:$StockItemName then $$Number:$Amount else $$Number:$Amount / $$Number:$billedqty
+				JSONTag: "rate"
+				Format: "Decimal:3"
+
+			[Field: SO_amount]
+
+				Type: Number
+				Set as: $$Number:$Amount
+				JSONTag: "amount"
+				Format: "Decimal:3"
+
+			[Field: SO_delivery_date_item]
+				
+				Set as: $$GetSqlDate:@DueDate
+				JSONTag: "delivery_date"
+				DueDate : if $$IsEmpty:@AllocDate then $Date + 7 else @AllocDate + 7 
+				AllocDate : $LedgerEntries[1,@@IsDebtorCreditor].BillAllocations[1].BillCreditPeriod
+
+			[Field: SO_warehouse]
+
+				Set as: if $$IsEmpty:$StockItemName then "Main - " + @@EnableMGNCmpAbbr else $BatchAllocations[1].godownName + " - " +@@EnableMGNCmpAbbr
+				JSONTag: "warehouse"
+
+	[Part: SO_service_items]
+		
+		Line: SO_service_items 
+		Repeat: SO_service_items  : SO_ServiceOnly
+		Scroll: Vertical
+		
+		[Line: SO_service_items]
+			
+			Field: SOS_item_code, SOS_item_name, SOS_description, SOS_qty, SOS_uom, SOS_rate, SOS_amount
+			Field: SOS_delivery_date_item, SOS_warehouse
+			JSONTag: "items"
+			
+			[Field: SOS_item_code]
+				
+				JSONTag : "item_code"
+				Set as: "Project Item"
+
+			[Field: SOS_item_name]
+				
+				Set as: "Project Item"
+				JSONTag: "item_name"
+				
+			[Field: SOS_description]
+
+				Set as: "Service Order - " + $Narration
+				JSONTag: "description"
+
+			[Field: SOS_qty]
+
+				Type: Number
+				Set as: 1
+				JSONTag: "qty"
+
+			[Field: SOS_uom]
+
+				Set as: "Nos"
+				JSONTag: "uom"
+
+			[Field: SOS_rate]
+
+				Type: Number
+				Set as: $$Number:$Amount
+				JSONTag: "rate"
+				Format: "Decimal:3"
+
+			[Field: SOS_amount]
+
+				Type: Number
+				Set as: $$Number:$Amount
+				JSONTag: "amount"
+				Format: "Decimal:3"
+
+			[Field: SOS_delivery_date_item]
+				
+				Set as: $$GetSqlDate:@DueDate
+				JSONTag: "delivery_date"
+				DueDate : if $$IsEmpty:@AllocDate then $Date + 7 else @AllocDate + 7 
+				AllocDate : $LedgerEntries[1,@@IsDebtorCreditor].BillAllocations[1].BillCreditPeriod
+
+			[Field: SOS_warehouse]
+
+				Set as: "Main - " + @@EnableMGNCmpAbbr
+				JSONTag: "warehouse"
+
+[Collection: SO_ServiceOnly]
+	
+	Type: String
+	Source Collection: Default
+	Walk: Default
+	Filter: SO_IsServiceOnly
+
+[Collection: SO_Items_Collection]
+	
+	Source Collection: InventoryEntries
+	Walk: InventoryEntries
+	By: $StockItemName : $Amount : $BilledQty
+	Aggr Compute: Amount : Sum : $Amount
+	Aggr Compute: BilledQty : Sum : $BilledQty
+
+	[Collection: SO_Items_Collection_NonStock]
+		
+		Source Collection: LedgerEntries
+		Filter: SO_NonStockFilter
+		Walk: LedgerEntries
+		By: $LedgerName : $Amount
+		Aggr Compute: Amount : Sum : $Amount
+
+[Collection: SEND_SalesOrder_Tally]
+
+	Type		: Vouchers : VoucherType
+	Child Of	: "Sales Order"
+	Belongs To	: Yes
+	Filter 		: SO_DebugAll
+	Fetch: VoucherTypeName, PartyLedgerName, Date, Narration, Amount, WebStatus_DocName
+	Fetch: LedgerEntries.LedgerName, LedgerEntries.Amount
+	Fetch: InventoryEntries.StockItemName, InventoryEntries.BilledQty, InventoryEntries.Rate, InventoryEntries.Amount
+	;Filter: NonCancelled
+	;Filter: NonOptional
+	;Filter: NonZeroEntries
+	
+	[System: Formula]
+		
+		NonCancelled 	: NOT $IsCancelled
+		NonOptional		: NOT $IsOptional 
+		NonZeroEntries 	: NOT $$IsEmpty:$Amount
+		SO_NonStockFilter: $LedgerName != $PartyLedgerName AND $$IsNotApplicable:$VATApplicable:Ledger:$LedgerName AND $TaxType:Ledger:$LedgerName != "VAT"
+		SO_IsServiceOnly: $$NumItems:InventoryEntries = 0
+		SO_DebugAll: Yes
+		
+[#Form: Voucher]
+
+	Add : Option : LedgerWebStatus

@@ -1,0 +1,258 @@
+;;Shivgoraksh
+
+/*
+
+*/
+
+[#Form: Company Operations]
+
+	Local: Part: CMPTallyShopFeaturesLeft : Add: Line: At End: EnableMGNImp
+	
+	[#Part: CMPTallyShopFeaturesLeft]
+		
+		Add: Line: At End: EnableMGNImp
+
+	[Line: EnableMGNImp]
+		
+		Field: Long Prompt, EnableMGNImp
+		Local: Field: Long Prompt : Info: "Enable MGN Integration ?"
+
+		[Field: EnableMGNImp]
+			
+			Use: Logical Field 
+			Storage: EnableMGNImp
+			Sub Form: EnableMGNKeys : $$Value
+
+			[Report : EnableMGNKeys]
+				
+				Form: EnableMGNKeys
+				
+				[Form: EnableMGNKeys]
+					
+					Part: EnableMGNKeys
+					Height: 40% Screen
+					Width: 60% Screen
+					
+					[Part: EnableMGNKeys]
+						
+						Line: FormSubTitle, EnableMGNHost, EnableMGNKeys, EnableMGNSecret, EnableMGNRecords, EnableMGNBranch, +
+							  EnableMGNCmpAbbr, EnableMGNLastSyncOn, EnableMGNResetFlag
+						Local: Field: FormSubTitle : Info: "MGN Api Configuration"
+						Local: Line: Default : Space Top: 0.30
+						Local: Line: Default : Space Bottom: 0.30
+						
+						[Line: EnableMGNHost]
+
+							Field: Long Prompt, EnableMGNHost
+							Local: Field: Long Prompt : Info: "MGN Host URL :"
+							
+							[Field: EnableMGNHost]
+								
+								Use: Name Field 
+								Case: Normal
+								Storage: EnableMGNHost
+
+						[Line: EnableMGNKeys]
+							
+							Field: Long Prompt, EnableMGNKeys
+							Local: Field: Long Prompt : Info: "MGN API Key :"
+							
+							[Field: EnableMGNKeys]
+								
+								Use: Name Field 
+								Case: Normal
+								Storage: EnableMGNKey
+							
+						[Line: EnableMGNSecret]
+						
+							Field: Long Prompt, EnableMGNSecret
+							Local: Field: Long Prompt : Info: "MGN API Secret:"
+							
+							[Field: EnableMGNSecret]
+								
+								Use: Name Field 
+								Case: Normal
+								Storage: EnableMGNSecret
+								
+						[Line: EnableMGNRecords]
+						
+							Field: Long Prompt, EnableMGNRecords
+							Local: Field: Long Prompt : Info: "Records Per Request :"
+							
+							[Field: EnableMGNRecords]
+								
+								Use: Number Field
+								Storage: EnableMGNRecords
+								Set as: 100
+			
+						[Line: EnableMGNBranch]
+						
+							Field: Long Prompt, EnableMGNBranch
+							Local: Field: Long Prompt : Info: "MGN Company Name :"
+							
+							
+							[Field: EnableMGNBranch]
+								
+								Use: Name Field 
+								Case: Normal
+								Storage: EnableMGNBranch
+								Sub Form: NSConfig : NOt $$IsEmpty:$$Value
+								
+						[Line: EnableMGNCmpAbbr]
+							
+							Field: Long Prompt, EnableMGNCmpAbbr
+							Local: Field: Long Prompt : Info: "MGN Company Abbr. :"
+							
+							[Field: EnableMGNCmpAbbr]
+								
+								Use: Name Field 
+								Case: Normal
+								Storage: EnableMGNCmpAbbr
+
+
+						[Line: EnableMGNLastSyncOn]
+						
+							Field: Long Prompt, EnableMGNLastSyncOn
+							Local: Field: Long Prompt : Info: "Last Sync On :"
+							Invisible: Yes
+							
+							[Field: EnableMGNLastSyncOn]
+								
+								Use: Name Field 
+								Case: Normal
+								Storage: MGNLastSyncOn
+								
+						[Line: EnableMGNResetFlag]
+						
+							Field: Long Prompt, EnableMGNResetFlag
+							Local: Field: Long Prompt : Info: "Reset Flag :"
+							
+							[Field: EnableMGNResetFlag]
+								
+								Use: Name Field 
+								Case: Normal
+								Storage: MGNResetFlag
+								Set as: "1"
+								Set Always: Yes
+
+	[System: UDf]
+		
+		EnableMGNImp 		: Logical	: 31588
+		EnableMGNKey 		: String	: 31589
+		EnableMGNSecret 	: String	: 31590
+		EnableMGNHost 		: String	: 31591
+		EnableMGNBranch		: String	: 31592
+		MGNLastSyncOn		: String	: 31593
+		MGNResetFlag		: String	: 31594
+		EnableMGNRecords	: Number	: 31595
+		EnableMGNCmpAbbr 	: String	: 31596
+
+[System: Formula]
+	
+	EnableMGNImp	: $EnableMGNImp:Company:##SVCurrentCompany
+	MGNHost 		: $EnableMGNHost:Company:##SVCurrentCompany ;"http://erp.step-tech.in"
+	MGNAPIKey 		: $EnableMGNKey:Company:##SVCurrentCompany ;"bf8c0737df860af"
+	MGNAPISecret 	: $EnableMGNSecret:Company:##SVCurrentCompany ;"d397c3ed47ec4b1"
+	MGNBranch 		: $EnableMGNBranch:Company:##SVCurrentCompany
+	EnableMGNCmpAbbr: $EnableMGNCmpAbbr:Company:##SVCurrentCompany
+
+	MGNLastSyncOn 	: if $$IsEmpty:$MGNLastSyncOn:Company:##SVCurrentCompany then $$GetSqlDate:@@CmpStartDate else $MGNLastSyncOn:Company:##SVCurrentCompany
+	MGNResetFlag 	: $MGNResetFlag:Company:##SVCurrentCompany
+	RecordsLimit 		: $EnableMGNRecords:Company:##SVCurrentCompany
+
+	AuthToken 			: @@MGNAPIKey + ":" + @@MGNAPISecret
+
+
+	locExpressMgn	: "MGN"
+
+
+[#Menu: Gateway of Tally]
+	
+	Add: Item : Before : @@LocQuit : MGN Integration : Menu :  ExpressIntegrationMain
+
+[#Menu: Display Menu]
+	
+	Add: Item : Before : @@LocQuit : @@locExpressMgn : Menu :  ExpressIntegrationMain
+	
+	[Menu: ExpressIntegrationMain]
+		
+;		Item: Receive 	: Menu: ExpressIntegrationExp  ;;; Temporary 
+		Item: Migrate to MGN 	: Menu	: ExpressIntegration
+		Item: Exception 			: Alter	: ERPExcepRep
+		Item: Resetting 			: Menu 	: SyncConfig
+	
+	[Menu: ExpressIntegrationExp]
+
+	[Menu: ExpressIntegration]
+		Indent: "Accounts Masters"
+		Item: Customer Group 	: Call: SEND_CustomerGroup_Start
+		Item: Customer 			: Call: SEND_Customer_Start
+		Item: SupplierGroup 	: Call: SEND_SupplierGroup_Start
+		Item: Supplier 			: Call: SEND_Supplier_Start
+		Item: Blank
+		Indent: "Inventory Masters"
+		Item: Uom 			: Call: SEND_Uom
+		Item: Item Group	: Call: SEND_ItemGroup_Start
+		Item: Item 			: Call: SEND_Item_Start
+		Item: Warehouse		: Call: SEND_Warehouse
+		Item: Item UOM Update	: Call: SEND_Item_UOM_Update_Start
+
+		Item: Blank
+		Indent: "Opening Balances"
+		Item: Customer Opening : Call: SEND_CustomerOp
+		Item: Supplier Opening : Call: SEND_SupplierOp
+
+		Item: Blank
+		Indent: "Transactions"
+		Item: Sales Orders			: Call: SEND_SalesOrder_Start
+		Item: Sales Invoices 		: Call: SEND_SalesInvoice_Start
+		Item: Credit Notes 			: Call: SEND_CreditNoteInvoice_Start
+		Item: Purchase Invoice		: Call: SEND_PurchaseInvoice_Start
+		Item: Payment and Receipt 	: Call: SEND_PymtRcpt_Start
+		Item: Contra 				: Call: SEND_Contra_Start
+
+		Add:  Button: ExpressSyncAll
+		
+		[Button: ExpressSyncAll]
+			
+			Title: 'Sync All'
+			Key: Ctrl + Y
+	
+
+;[Include: receive\01 Customer.txt]
+;[Include: receive\02 Supplier.txt]
+;[Include: receive\03 PurchaseInvoice.txt]
+;[Include: receive\04 SaleInvoice.txt]
+;[Include: receive\05 Payment.txt]
+;[Include: receive\07 Stock Journal.txt]
+
+[Include: UtilityFunctions.txt]
+[Include: AutoSettings.txt]
+
+[Include: send\01_SEND_CustomerGroup.txt]
+[Include: send\02_SEND_Customer.txt]
+[Include: send\03_SEND_SupplierGroup.txt]
+[Include: send\04_SEND_Supplier.txt]
+[Include: send\05_SEND_Uom.txt]
+[Include: send\06_SEND_ItemGroup.txt]
+[Include: send\07_SEND_Item.txt]
+[Include: send\08_SEND_Warehouse.txt]
+[Include: send\08_SEND_Item_UOM_Update.txt]
+[Include: send\09_SEND_SalesOrder.txt]
+[Include: send\Reset.txt]
+
+[Include: send\09_SEND_CustomerOpeningInvoices.txt]
+[Include: send\09_SEND_SupplierOpeningInvoices.txt]
+[Include: send\10_SEND_Sales.txt]
+[Include: send\10_SEND_CreditNote.txt]
+[Include: send\11_SEND_Purchase.txt]
+[Include: send\12_SEND_CntrJrnl.txt]
+[Include: send\13_SEND_PymtRcpt.txt]
+
+
+[Include: NamingSeries.txt]
+[Include: EXCEPTION_Reports.txt]
+
+[Include: NamingSeriesConfig.txt]
+
+[Include: ETPL.txt]

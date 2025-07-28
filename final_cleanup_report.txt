@@ -1,0 +1,40 @@
+Final UAE VAT Cleanup Report
+============================
+Date: Sun Jul 27 11:52:01 AM +04 2025
+
+Changes Made:
+1. IncomeTaxNumber → TradeLicenseNumber
+2. PARTYGSTIN → PARTYVATAE
+3. LEDTehsil → LEDArea
+4. LEDDistrict → LEDLocality
+5. GetGSTStateCode/GetVATStateCode → GetEmirateCode
+6. Fixed remaining country references to "United Arab Emirates"
+7. Updated field names in Supplier file for UAE compliance
+
+Files Updated:
+./migration_report_20250727_115030.txt
+./ExpressTallyIntegration.txt
+./send/13_SEND_PymtRcpt.txt
+./send/06_SEND_ItemGroup.txt
+./send/04_SEND_Supplier.txt
+./send/05_SEND_Uom.txt
+./send/10_SEND_Sales.txt
+./send/08_SEND_Warehouse.txt
+./send/01_SEND_CustomerGroup.txt
+./send/11_SEND_Purchase.txt
+./send/09_SEND_CustomerOpeningInvoices.txt
+./send/09_SEND_SupplierOpeningInvoices.txt
+./send/Reset.txt
+./send/07_SEND_Item.txt
+./send/12_SEND_CntrJrnl.txt
+./send/03_SEND_SupplierGroup.txt
+./send/02_SEND_Customer.txt
+./send/10_SEND_CreditNote.txt
+./NamingSeriesConfig.txt
+./NamingSeries.txt
+./UtilityFunctions.txt
+./AutoSettings.txt
+./ETPL.txt
+./MGN.txt
+./final_cleanup_report.txt
+./EXCEPTION_Reports.txt

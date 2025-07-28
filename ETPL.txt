@@ -1,0 +1,34 @@
+;;Shivgoraksh
+
+
+[#System: Formula]
+	
+;; Purchase Invoice
+
+	PISupplier_Name : if $$IsEmpty:$supplier_name_in_tally or $supplier_name_in_tally ="null" then $supplier_name else $supplier_name_in_tally
+
+
+	PIPurchaseLEd : if $tax_category = "In-State" then "Purchase Taxable VAT" +
+							else if $tax_category = "Out-State" then "Interstate Purchase Taxable (VAT)" +
+							else if $tax_category = "Without VAT" then "Purchase Return Without VAT" +
+							else "VAT Purchase"
+
+	PIAccountHead : if $account_head contains "CVAT" then "Input Tax CVAT" else +
+					if $account_head contains "SVAT" then "Input Tax SVAT" else +
+					If $account_head contains "IVAT" then "Input Tax IVAT" else $$Trim_abbr:$account_head
+
+
+;; Sales Invoice 
+
+	PICustomer_Name : if $$IsEmpty:$supplier_name_in_tally or $supplier_name_in_tally ="null" then $customer_name else $supplier_name_in_tally
+
+
+	SIAccountHead : if $account_head contains "CVAT" then "Output Tax CVAT" else +
+					if $account_head contains "SVAT" then "Output Tax SVAT" else +
+					If $account_head contains "IVAT" then "Output Tax IVAT" else $$Trim_abbr:$account_head
+
+	SISalesLed	: if $tax_category = "In-State" then "Sales Taxable VAT" +
+							else if $tax_category = "Out-State" then "Interstate Sales Taxable (VAT)" +
+							else if $tax_category = "Without VAT" then "Sales Return Without VAT" +
+							else "VAT Purchase"
+							

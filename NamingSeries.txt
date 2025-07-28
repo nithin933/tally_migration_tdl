@@ -1,0 +1,30 @@
+;;Shivgoraksh
+
+[#Part: VTYP Behaviour]
+	
+	Add: Option: VTYP Behaviour Series : @@EnableMGNImp
+	
+	[!Part: VTYP Behaviour Series]
+		
+		Add: Line: At End: MGNNamingSeries
+		
+	[Line: MGNNamingSeries]
+		
+		Field: Long Prompt, MGNNamingSeries
+		Local: Field: Long Prompt : Info: "MGN Naming Series"
+		
+		[Field: MGNNamingSeries]
+			
+			Use: Name field 
+			Case: Normal
+			Storage: MGNNamingSeries
+			
+	[System: UDF]
+		
+		MGNNamingSeries : String: 33588
+
+	[System: Formula]
+		
+		MGNNamingSeries : $MGNNamingSeries:VoucherType:$VoucherTypeName
+
+
