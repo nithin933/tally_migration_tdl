@@ -56,7 +56,7 @@
 	45 : 	End If
 	60 : End Walk
 	
-	65 : Do If: ($$NumItems:SEND_SalesInvoice_Tally > 0 and Not $$IsEmpty:##vStatus) :  Start Timer: SEND_SalesInvoice_Timer : 1
+	; 65 : Do If: ($$NumItems:SEND_SalesInvoice_Tally > 0 and Not $$IsEmpty:##vStatus) :  Start Timer: SEND_SalesInvoice_Timer : 1
 
 ;[#Menu: Gateway of Tally]
 ;	
